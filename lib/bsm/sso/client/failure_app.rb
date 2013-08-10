@@ -22,13 +22,20 @@ class Bsm::Sso::Client::FailureApp < ActionController::Metal
 
   def redirect!
     path = env["warden.options"].try(:[], :attempted_path) || request.fullpath
-    redirect_to Bsm::Sso::Client.user_class.sso_sign_in_url(:service => service_url(path)), :status => 303
+    message = env["warden.options"][:message]
+    if message.nil?
+      redirect_to Bsm::Sso::Client.user_class.sso_sign_in_url(:service => service_url(path)), :status => 303
+    else
+      redirect_to Bsm::Sso::Client.user_class.sso_sign_out_url(:service => service_url(path))
+    end
   end
 
   def respond_with_js!
     self.status = :ok
     self.content_type  = request.format.to_s
-    self.response_body = "alert('Your session has expired');"
+    path = env["warden.options"].try(:[], :attempted_path) || request.fullpath
+    url = Bsm::Sso::Client.user_class.sso_sign_out_url(:service => service_url(path))
+    self.response_body = "alert('Your session has expired'); location = '#{url}' "
   end
 
   def stop!
